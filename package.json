@@ -1,10 +1,37 @@
 {
     "name": "book-marketplace",
     "version": "0.0.0",
-    "description": "A simple Backend for a Book Marketplace",
+    "description": "Backend for a Book Marketplace",
     "main": "index.ts",
     "repository": "https://github.com/KuryKat/CIC-book-marketplace",
     "author": "KuryKat",
     "license": "none",
-    "private": true
+    "private": true,
+    "scripts": {
+        "start": "ts-node -r tsconfig-paths/register .",
+        "dev": "ts-node-dev -r tsconfig-paths/register .",
+        "build": "tsc -p .",
+        "lint": "eslint --ext .ts --ignore-path .gitignore ."
+    },
+    "dependencies": {
+        "express": "^4.17.3",
+        "moment": "^2.29.2",
+        "mongoose": "^6.3.0",
+        "tsconfig-paths": "^3.14.1",
+        "winston": "^3.7.2"
+    },
+    "devDependencies": {
+        "@types/node": "^17.0.24",
+        "@typescript-eslint/eslint-plugin": "^5.19.0",
+        "eslint": "7.12.1",
+        "eslint-config-standard": "^16.0.3",
+        "eslint-config-standard-with-typescript": "^21.0.1",
+        "eslint-import-resolver-typescript": "^2.7.1",
+        "eslint-plugin-import": "2.22.1",
+        "eslint-plugin-node": "11.1.0",
+        "eslint-plugin-promise": "4.2.1",
+        "ts-node": "^10.7.0",
+        "ts-node-dev": "^1.1.8",
+        "typescript": "^4.6.3"
+    }
 }

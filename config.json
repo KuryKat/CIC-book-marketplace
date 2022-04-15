@@ -1,0 +1,6 @@
+{
+    "project": {
+        "label": "Book Marketplace",
+        "logPath": "./src/logs/latest.log"
+    }
+}
