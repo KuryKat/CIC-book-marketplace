@@ -48,6 +48,9 @@
       "@modules/*": [
         "./src/modules/*"
       ],
+      "@routes/*": [
+        "./src/routes/*"
+      ],
       "@utils/*": [
         "./src/utils/*"
       ],

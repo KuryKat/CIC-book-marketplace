@@ -1,6 +1,15 @@
 {
     "project": {
         "label": "Project Name",
+        "env": "development",
         "logPath": "./src/logs/latest.log"
+    },
+    "server": {
+        "port": 3000
+    },
+    "database": {
+        "mongo": {
+            "url": "MONGO URI"
+        }
     }
 }
