@@ -106,3 +106,7 @@ dist
 
 #Extra Stuff
 config.json
+
+.vscode/
+.clinic/
+out/

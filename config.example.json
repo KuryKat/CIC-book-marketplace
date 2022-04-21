@@ -11,5 +11,8 @@
         "mongo": {
             "url": "MONGO URI"
         }
+    },
+    "JWT": {
+        "secret": "super-secret-to-jwt"
     }
 }

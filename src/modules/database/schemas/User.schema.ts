@@ -1,22 +1,23 @@
 import { Document, Schema } from 'mongoose'
-import UserDTO, { UserRoles } from '../interfaces/User/User.DTO'
+import UserDTO, { UserDetails, UserRoles } from '../interfaces/User/User.DTO'
 
 export class User {
   constructor ({
     _id,
     name,
     email,
-    phone,
+    password,
     details
   }: UserDTO) {
     this._id = _id
     this.name = name
     this.email = email
-    this.phone = phone
+    this.password = password
     this.details =
       details != null
         ? details
         : {
+            phone: null,
             role: UserRoles.user,
             balance: 0,
             booksSold: 0,
@@ -30,28 +31,40 @@ export class User {
   _id: string
   name: string
   email: string
-  phone: string
-  details: {
-    role: UserRoles
-    balance: number
-    booksSold: number
-    dates: {
-      lastSeen: Date
-      joined: Date
-    }
-  }
+  password: string
+  details: UserDetails
 }
 
 export type UserDocument = User & Document
 export const userSchema = new Schema({
-  _id: String,
-  name: String,
-  email: String,
-  phone: {
-    default: null,
-    type: String
+  _id: {
+    type: String,
+    required: true
+  },
+  name: {
+    type: String,
+    required: true
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    validate: {
+      validator: (v: string): boolean => /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(v),
+      message: '\'{VALUE}\' is not a valid email!'
+    }
+  },
+  password: {
+    type: String,
+    min: 8,
+    max: 40,
+    required: true
   },
   details: {
+    phone: {
+      default: null,
+      type: String
+    },
     role: {
       default: UserRoles.user,
       type: Number

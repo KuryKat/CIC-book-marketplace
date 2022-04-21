@@ -5,18 +5,21 @@ export enum UserRoles {
   owner
 }
 
+export interface UserDetails {
+  phone: string | null
+  role: UserRoles
+  balance: number
+  booksSold: number
+  dates: {
+    lastSeen: Date
+    joined: Date
+  }
+}
+
 export default interface UserDTO {
   _id: string
   name: string
   email: string
-  phone: string
-  details: {
-    role: UserRoles
-    balance: number
-    booksSold: number
-    dates: {
-      lastSeen: Date
-      joined: Date
-    }
-  }
+  password: string
+  details: UserDetails | undefined
 }

@@ -9,12 +9,13 @@ export default class UserService {
   ) { }
 
   async createUser (newUser: UserDTO): Promise<User> {
-    return await (new this.UserModel(newUser)).save()
+    return new User(await (new this.UserModel(newUser)).save())
   }
 
-  async getUser (search?: string, sort = 'recent', page = 1, limit = 10): Promise<User[]> {
+  async getUser (search?: string, showRestrictInfo = false, sort = 'recent', page = 1, limit = 10): Promise<User[]> {
     const params: FilterQuery<UserDocument> = {}
     let sortOrder = {}
+    let restrictInfo = {}
 
     if (search != null) {
       if (search.length > 0) {
@@ -29,10 +30,18 @@ export default class UserService {
       sortOrder = { 'details.dates.lastSeen': -1 }
     } else if (sort === 'famous') {
       sortOrder = { 'details.booksSold': -1 }
+    } else {
+      sortOrder = { 'details.dates.joined': -1 }
+    }
+
+    if (showRestrictInfo) {
+      restrictInfo = { password: 0 }
+    } else {
+      restrictInfo = { password: 0, email: 0, 'details.phone': 0, 'details.balance': 0 }
     }
 
     const users = await this.UserModel
-      .find(params)
+      .find(params, restrictInfo)
       .sort(sortOrder)
       .limit(limit)
       .skip((page - 1) * limit)
@@ -46,14 +55,31 @@ export default class UserService {
     return formatedUsers
   }
 
-  async getUserByID (userID: string): Promise<User | undefined> {
-    const result = await this.UserModel.findById(userID).exec()
+  async getUserByID (userID: string, showRestrictInfo = false): Promise<User | undefined> {
+    let restrictInfo = {}
+    if (showRestrictInfo) {
+      restrictInfo = { password: 0 }
+    } else {
+      restrictInfo = { password: 0, email: 0, 'details.phone': 0, 'details.balance': 0 }
+    }
+
+    const result = await this.UserModel.findById(userID, restrictInfo).exec()
 
     if (result == null) {
       return
     }
 
-    return result
+    return new User(result)
+  }
+
+  async getUserByEmail (email: string): Promise<User | undefined> {
+    const result = await this.UserModel.findOne({ email }).exec()
+
+    if (result == null) {
+      return
+    }
+
+    return new User(result)
   }
 
   async updateUser (userToUpdate: User, updatedUser: UpdateUserDTO): Promise<User | undefined> {
@@ -65,7 +91,8 @@ export default class UserService {
 
     dbUser.name = updatedUser.name
     dbUser.email = updatedUser.email
-    dbUser.phone = updatedUser.phone
+    dbUser.password = updatedUser.password
+    dbUser.details.phone = updatedUser.details.phone
     dbUser.details.balance = updatedUser.details.balance
     dbUser.details.booksSold = updatedUser.details.booksSold
     dbUser.details.role = updatedUser.details.role
