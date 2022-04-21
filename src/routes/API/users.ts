@@ -80,4 +80,10 @@ router.get('/:id', (async (req, res) => {
   res.send(user)
 }) as RequestHandler)
 
+router.get('/:id/books', (async (req, res) => {
+  const { id } = req.params
+  const books = await req.bookService.getBooksBySeller(id)
+  res.send(books)
+}) as RequestHandler)
+
 export default router
