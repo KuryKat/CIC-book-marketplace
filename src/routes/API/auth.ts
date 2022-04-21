@@ -52,7 +52,6 @@ router.post('/register', (async (req, res) => {
     console.error(error)
     return res.status(500).send(
       {
-        error: req.app.get('env') === 'development' ? error : {},
         auth: false,
         message: 'Internal Server Error'
       }
