@@ -3,7 +3,7 @@ import { RequestHandler, Router } from 'express'
 import { hash, genSalt, compare } from 'bcryptjs'
 import generateID from '@utils/generateID'
 import UserDTO from '@modules/database/interfaces/User/User.DTO'
-import VerifyToken from '@utils/Middlewares/VerifyToken'
+import ValidateToken from '@utils/Middlewares/ValidateToken'
 import generateToken from '@utils/generateToken'
 import GetUser from '@utils/Middlewares/GetUser'
 
@@ -60,7 +60,7 @@ router.post('/register', (async (req, res) => {
   }
 }) as RequestHandler)
 
-router.get('/@me', VerifyToken, GetUser, (req, res) => res.send(req.user ?? {}))
+router.get('/@me', ValidateToken, GetUser, (req, res) => res.send(req.user ?? {}))
 
 router.post('/login', (async (req, res) => {
   try {

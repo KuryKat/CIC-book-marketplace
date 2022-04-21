@@ -4,7 +4,7 @@ import { parse } from 'papaparse'
 import generateID from '@utils/generateID'
 import BookDTO from '@modules/database/interfaces/Book/Book.DTO'
 import CreateBookDTO from '@modules/database/interfaces/Book/CreateBook.DTO'
-import VerifyToken from '@utils/Middlewares/VerifyToken'
+import ValidateToken from '@utils/Middlewares/ValidateToken'
 import GetUser from '@utils/Middlewares/GetUser'
 import { UserRoles } from '@modules/database/interfaces/User/User.DTO'
 
@@ -28,7 +28,7 @@ router.get('/', (async (req, res) => {
   return res.json(results)
 }) as RequestHandler)
 
-router.post('/', VerifyToken, GetUser, (async (req, res) => {
+router.post('/', ValidateToken, GetUser, (async (req, res) => {
   try {
     if (req.user == null) {
       return res.status(404).send({ auth: false, message: 'User Not Found' })
