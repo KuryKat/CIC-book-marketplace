@@ -82,20 +82,28 @@ export default class UserService {
     return new User(result)
   }
 
-  async updateUser (userToUpdate: User, updatedUser: UpdateUserDTO): Promise<User | undefined> {
+  async updateUser (userToUpdate: User, updatedUser: UpdateUserDTO, updateType: 'user' | 'adm' | 'auto'): Promise<User | undefined> {
     const dbUser = await this.UserModel.findById(userToUpdate._id).exec()
 
     if (dbUser == null) {
       return
     }
 
-    dbUser.name = updatedUser.name
-    dbUser.email = updatedUser.email
-    dbUser.password = updatedUser.password
-    dbUser.details.phone = updatedUser.details.phone
-    dbUser.details.balance = updatedUser.details.balance
-    dbUser.details.booksSold = updatedUser.details.booksSold
-    dbUser.details.role = updatedUser.details.role
+    switch (updateType) {
+      case 'user':
+        dbUser.name = updatedUser.name
+        dbUser.email = updatedUser.email
+        dbUser.password = updatedUser.password
+        dbUser.details.phone = updatedUser.details.phone
+        break
+      case 'adm':
+        dbUser.details.role = updatedUser.details.role
+        break
+      case 'auto':
+        dbUser.details.balance = updatedUser.details.balance
+        dbUser.details.booksSold = updatedUser.details.booksSold
+        break
+    }
 
     return new User(await dbUser.save())
   }
