@@ -7,6 +7,7 @@ import CreateBookDTO from '@modules/database/interfaces/Book/CreateBook.DTO'
 import ValidateToken from '@utils/Middlewares/ValidateToken'
 import GetUser from '@utils/Middlewares/GetUser'
 import { UserRoles } from '@modules/database/interfaces/User/User.DTO'
+import UpdateLastSeen, { UpdateLastSeenInsideHandler } from '@utils/Middlewares/UpdateLastSeen'
 
 const router = Router()
 
@@ -25,10 +26,14 @@ router.get('/', (async (req, res) => {
     results = await req.bookService.getBook(search as string ?? '')
   }
 
+  if (req.user != null) {
+    await UpdateLastSeenInsideHandler(req.user, req.userService)
+  }
+
   return res.json(results)
 }) as RequestHandler)
 
-router.post('/', ValidateToken, GetUser, (async (req, res) => {
+router.post('/', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
   try {
     if (req.user == null) {
       return res.status(404).send({ auth: false, message: 'User Not Found' })

@@ -9,5 +9,8 @@ export default interface UpdateUserDTO {
     role: UserRoles
     balance: number
     booksSold: number
+    dates: {
+      lastSeen: Date
+    }
   }
 }

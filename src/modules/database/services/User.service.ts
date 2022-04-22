@@ -100,6 +100,7 @@ export default class UserService {
         dbUser.details.role = updatedUser.details.role
         break
       case 'auto':
+        dbUser.details.dates.lastSeen = updatedUser.details.dates.lastSeen
         dbUser.details.balance = updatedUser.details.balance
         dbUser.details.booksSold = updatedUser.details.booksSold
         break

@@ -7,6 +7,7 @@ import { UserRoles } from '@modules/database/interfaces/User/User.DTO'
 import ValidateToken from '@utils/Middlewares/ValidateToken'
 import GetUser from '@utils/Middlewares/GetUser'
 import generateToken from '@utils/generateToken'
+import UpdateLastSeen, { UpdateLastSeenInsideHandler } from '@utils/Middlewares/UpdateLastSeen'
 
 const router = Router()
 
@@ -32,7 +33,9 @@ router.get('/', (async (req, res) => {
         return res.status(404).send({ auth: false, message: 'User Not Found' })
       }
 
+      req.user = user
       showAll = user.details.role >= UserRoles.adm
+      await UpdateLastSeenInsideHandler(user, req.userService)
     }
 
     const queryPage = Number.parseInt(page as string)
@@ -44,6 +47,10 @@ router.get('/', (async (req, res) => {
       results = await req.userService.getUser(search as string ?? '', showAll, sort, pageNum, limitNum)
     } else {
       results = await req.userService.getUser(search as string ?? '', showAll)
+    }
+
+    if (req.user != null) {
+      await UpdateLastSeenInsideHandler(req.user, req.userService)
     }
 
     return res.json(results)
@@ -77,7 +84,13 @@ router.get('/:id', (async (req, res) => {
       return res.status(404).send({ auth: false, message: 'User Not Found' })
     }
 
+    req.user = user
     showAll = user._id === id || user.details.role >= UserRoles.adm
+    await UpdateLastSeenInsideHandler(user, req.userService)
+  }
+
+  if (req.user != null) {
+    await UpdateLastSeenInsideHandler(req.user, req.userService)
   }
 
   const user = await req.userService.getUserByID(id, showAll)
@@ -87,10 +100,15 @@ router.get('/:id', (async (req, res) => {
 router.get('/:id/books', (async (req, res) => {
   const { id } = req.params
   const books = await req.bookService.getBooksBySeller(id)
+
+  if (req.user != null) {
+    await UpdateLastSeenInsideHandler(req.user, req.userService)
+  }
+
   res.send(books)
 }) as RequestHandler)
 
-router.patch('/@me', ValidateToken, GetUser, (async (req, res) => {
+router.patch('/@me', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
   try {
     if (req.user == null) {
       return res.status(404).send({ auth: false, message: 'User Not Found' })
@@ -132,6 +150,43 @@ router.patch('/@me', ValidateToken, GetUser, (async (req, res) => {
         return res.status(400).send({ auth: false, message: 'Email already registered' })
       }
     }
+
+    console.error(error)
+    return res.status(500).send({ auth: false, message: 'Internal Server Error' })
+  }
+}) as RequestHandler)
+
+router.patch('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
+  try {
+    const { id } = req.params
+    if (req.user == null) {
+      return res.status(404).send({ auth: false, message: 'User Not Found' })
+    }
+
+    if (req.user.details.role < UserRoles.adm) {
+      return res.status(401).send({ auth: false, message: 'Access Denied' })
+    }
+
+    let updatedUser = await req.userService.getUserByID(id)
+    if (updatedUser == null) {
+      return res.status(404).send({ auth: false, message: 'User Not Found' })
+    }
+
+    const { role } = req.body
+
+    if (role != null && !(isNaN(role))) {
+      updatedUser.details.role = role
+    }
+
+    updatedUser = await req.userService.updateUser(req.user, updatedUser, 'adm')
+    if (updatedUser == null) {
+      return res.status(404).send({ auth: false, message: 'User Not Found' })
+    }
+
+    res.send(updatedUser)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).send({ auth: false, message: 'Internal Server Error' })
   }
 }) as RequestHandler)
 

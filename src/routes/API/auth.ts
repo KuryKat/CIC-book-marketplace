@@ -6,6 +6,7 @@ import UserDTO from '@modules/database/interfaces/User/User.DTO'
 import ValidateToken from '@utils/Middlewares/ValidateToken'
 import generateToken from '@utils/generateToken'
 import GetUser from '@utils/Middlewares/GetUser'
+import UpdateLastSeen, { UpdateLastSeenInsideHandler } from '@utils/Middlewares/UpdateLastSeen'
 
 const router = Router()
 
@@ -33,9 +34,10 @@ router.post('/register', (async (req, res) => {
       password: hashedPass,
       details: undefined
     }
-    await req.userService.createUser(newUser)
+    const user = await req.userService.createUser(newUser)
     const token = generateToken(_id, name, email)
 
+    req.user = user
     return res.send({ auth: true, token })
   } catch (error) {
     if (error instanceof MongooseErrors.ValidationError) {
@@ -59,7 +61,7 @@ router.post('/register', (async (req, res) => {
   }
 }) as RequestHandler)
 
-router.get('/@me', ValidateToken, GetUser, (req, res) => res.send(req.user ?? {}))
+router.get('/@me', ValidateToken, GetUser, UpdateLastSeen, (req, res) => res.send(req.user ?? {}))
 
 router.post('/login', (async (req, res) => {
   try {
@@ -80,6 +82,8 @@ router.post('/login', (async (req, res) => {
 
     const token = generateToken(_id, name, email)
 
+    req.user = await req.userService.getUserByID(user._id)
+    await UpdateLastSeenInsideHandler(user, req.userService)
     res.send({ auth: true, token })
   } catch (error) {
     console.error(error)
