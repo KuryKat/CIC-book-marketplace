@@ -110,3 +110,4 @@ config.json
 .vscode/
 .clinic/
 out/
+test/
