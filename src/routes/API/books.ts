@@ -48,7 +48,7 @@ router.post('/', ValidateToken, GetUser, (async (req, res) => {
       return res.status(400).send({ auth: false, message: 'Too Many Files' })
     }
 
-    const books = parse(attachment.data.toString(), { header: true, delimiter: ',' }).data as CreateBookDTO[]
+    const books = parse(attachment.data.toString(), { header: true, delimiter: ',', quoteChar: '🙌' }).data as CreateBookDTO[]
 
     const createdBooks = []
     for (const book of books) {
