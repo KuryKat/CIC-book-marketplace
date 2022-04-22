@@ -8,6 +8,7 @@ import ValidateToken from '@utils/Middlewares/ValidateToken'
 import GetUser from '@utils/Middlewares/GetUser'
 import { UserRoles } from '@modules/database/interfaces/User/User.DTO'
 import UpdateLastSeen, { UpdateLastSeenInsideHandler } from '@utils/Middlewares/UpdateLastSeen'
+import { User } from '@modules/database/schemas/User.schema'
 
 const router = Router()
 
@@ -81,6 +82,36 @@ router.post('/', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
     console.error(error)
     return res.status(500).send({ auth: false, message: 'Internal Server Error' })
   }
+}) as RequestHandler)
+
+router.get('/:id', (async (req, res) => {
+  const { id } = req.params
+  const book = await req.bookService.getBookByID(id, true)
+
+  if (book == null) {
+    return res.status(404).send({ auth: false, message: 'Book Not Found' })
+  }
+
+  if (req.user != null) {
+    await UpdateLastSeenInsideHandler(req.user, req.userService)
+  }
+
+  res.send(book)
+}) as RequestHandler)
+
+router.get('/:id/seller', (async (req, res) => {
+  const { id } = req.params
+  const book = await req.bookService.getBookByID(id, true)
+
+  if (book == null) {
+    return res.status(404).send({ auth: false, message: 'Book Not Found' })
+  }
+
+  if (req.user != null) {
+    await UpdateLastSeenInsideHandler(req.user, req.userService)
+  }
+
+  res.redirect('/api/users/' + (book.seller as User)._id)
 }) as RequestHandler)
 
 export default router
