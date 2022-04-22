@@ -65,36 +65,45 @@ router.get('/', (async (req, res) => {
 }) as RequestHandler)
 
 router.get('/:id', (async (req, res) => {
-  const { authorization } = req.headers
-  const { id } = req.params
-  let showAll = false
+  try {
+    const { authorization } = req.headers
+    const { id } = req.params
+    let showAll = false
 
-  if (authorization != null) {
-    const token = authorization?.split(' ')[1]
+    if (authorization != null) {
+      const token = authorization?.split(' ')[1]
 
-    if (token == null) {
-      return res.status(401).send({ auth: false, message: 'No token provided.' })
+      if (token == null) {
+        return res.status(401).send({ auth: false, message: 'No token provided.' })
+      }
+
+      const decoded = verify(token, JWT.secret) as JwtPayload
+
+      const user = await req.userService.getUserByID(decoded._id)
+
+      if (user == null) {
+        return res.status(404).send({ auth: false, message: 'User Not Found' })
+      }
+
+      req.user = user
+      showAll = user._id === id || user.details.role >= UserRoles.adm
+      await UpdateLastSeenInsideHandler(user, req.userService)
     }
 
-    const decoded = verify(token, JWT.secret) as JwtPayload
-
-    const user = await req.userService.getUserByID(decoded._id)
-
-    if (user == null) {
-      return res.status(404).send({ auth: false, message: 'User Not Found' })
+    if (req.user != null) {
+      await UpdateLastSeenInsideHandler(req.user, req.userService)
     }
 
-    req.user = user
-    showAll = user._id === id || user.details.role >= UserRoles.adm
-    await UpdateLastSeenInsideHandler(user, req.userService)
-  }
+    const user = await req.userService.getUserByID(id, showAll)
+    res.send(user ?? {})
+  } catch (error) {
+    if (error instanceof JsonWebTokenError) {
+      return res.status(401).send({ auth: false, message: 'Invalid Token.' })
+    }
 
-  if (req.user != null) {
-    await UpdateLastSeenInsideHandler(req.user, req.userService)
+    console.error(error)
+    return res.status(500).send({ auth: false, message: 'Internal Server Error' })
   }
-
-  const user = await req.userService.getUserByID(id, showAll)
-  res.send(user)
 }) as RequestHandler)
 
 router.get('/:id/books', (async (req, res) => {
