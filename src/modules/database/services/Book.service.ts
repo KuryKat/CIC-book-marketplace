@@ -60,8 +60,14 @@ export default class BookService {
     return formatedBooks
   }
 
-  async getBookByID (bookID: string): Promise<Book | undefined> {
-    const result = await this.BookModel.findById(bookID).exec()
+  async getBookByID (bookID: string, populateSeller = false): Promise<Book | undefined> {
+    let query = this.BookModel.findById(bookID)
+
+    if (populateSeller) {
+      query = query.populate('seller', { _id: 1, name: 1 })
+    }
+
+    const result = await query.exec()
 
     if (result == null) {
       return
