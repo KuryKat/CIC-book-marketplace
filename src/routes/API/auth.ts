@@ -35,7 +35,7 @@ router.post('/register', (async (req, res) => {
       details: undefined
     }
     const user = await req.userService.createUser(newUser)
-    const token = generateToken(_id, name, email)
+    const token = generateToken(_id, name)
 
     req.user = user
     return res.send({ auth: true, token })
@@ -80,7 +80,7 @@ router.post('/login', (async (req, res) => {
       return res.status(401).send({ auth: false, token: null })
     }
 
-    const token = generateToken(_id, name, email)
+    const token = generateToken(_id, name)
 
     req.user = await req.userService.getUserByID(user._id)
     await UpdateLastSeenInsideHandler(user, req.userService)

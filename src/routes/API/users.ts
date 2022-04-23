@@ -159,7 +159,7 @@ router.patch('/@me', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) =
       return res.status(404).send({ auth: false, message: 'User Not Found' })
     }
 
-    const token = generateToken(updatedUser._id, updatedUser.name, updatedUser.email)
+    const token = generateToken(updatedUser._id, updatedUser.name)
     res.send({ auth: true, token })
   } catch (error) {
     if (error instanceof Error) {
