@@ -9,6 +9,10 @@ import GetUser from '@utils/Middlewares/GetUser'
 import { UserRoles } from '@modules/database/interfaces/User/User.DTO'
 import UpdateLastSeen, { UpdateLastSeenInsideHandler } from '@utils/Middlewares/UpdateLastSeen'
 import { User } from '@modules/database/schemas/User.schema'
+import pdf from 'pdf-parse'
+import compareDates from '@utils/Dates/compareDates'
+import convertPDFDateToDate from '@utils/Dates/convertPdfDateToDate'
+import somethingThatProcessThePurchase from '@utils/somethingThatProcessThePurchase'
 
 const router = Router()
 
@@ -112,6 +116,148 @@ router.get('/:id/seller', (async (req, res) => {
   }
 
   res.redirect('/api/users/' + (book.seller as User)._id)
+}) as RequestHandler)
+
+router.post('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
+  try {
+    const { id } = req.params
+    const book = await req.bookService.getBookByID(id, true)
+
+    if (book == null) {
+      return res.status(404).send({ auth: false, message: 'Book Not Found' })
+    }
+
+    if (req.user != null) {
+      await UpdateLastSeenInsideHandler(req.user, req.userService)
+    }
+
+    if (req.user == null) {
+      return res.status(404).send({ auth: false, message: 'User Not Found' })
+    }
+
+    if (req.user.details.role < UserRoles.seller) {
+      return res.status(401).send({ auth: false, message: 'You\'re not an authorized seller! If you think this is a mistake, talk to our staff!' })
+    }
+
+    if (req.user._id !== (book.seller as User)._id) {
+      return res.status(401).send({ auth: false, message: 'You\'re not this book\'s seller! If you think this is a mistake, talk to our staff!' })
+    }
+
+    const bookPDF = req.files?.book
+
+    if (bookPDF == null) {
+      return res.status(400).send({ auth: false, message: 'File Not Found' })
+    }
+
+    if (Array.isArray(bookPDF)) {
+      return res.status(400).send({ auth: false, message: 'Too Many Files' })
+    }
+
+    const bookPDFData = await pdf(bookPDF.data)
+    const isSameDate = compareDates(book.publicationDate, convertPDFDateToDate(bookPDFData.info.CreationDate), true)
+
+    const isSameBook =
+      book.authors === bookPDFData.info.Author &&
+      book.title === bookPDFData.info.Title &&
+      book.pages === bookPDFData.numpages &&
+      book.publisher === bookPDFData.info.Producer &&
+      isSameDate
+
+    if (!isSameBook) {
+      return res.status(400).send({ auth: false, message: 'Some of the informations on the PDF metadata don\'t match the informations on the database' })
+    }
+
+    await req.bookService.writeBookPDF((book.seller as User)._id, id, book.title, bookPDF.data)
+
+    res.send({ auth: true, message: 'Book PDF successfully saved!' })
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === 'InvalidPDFException') {
+        return res.status(400).send({ auth: false, message: 'Invalid File Type! it needs to be a valid PDF file!' })
+      }
+    }
+
+    console.error(error)
+    return res.status(500).send({ auth: false, message: 'Internal Server Error' })
+  }
+}) as RequestHandler)
+
+router.post('/:id/buy', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
+  try {
+    const { id } = req.params
+    const book = await req.bookService.getBookByID(id, true)
+
+    if (book == null) {
+      return res.status(404).send({ auth: false, message: 'Book Not Found' })
+    }
+
+    if (req.user != null) {
+      await UpdateLastSeenInsideHandler(req.user, req.userService)
+    }
+
+    if (req.user == null) {
+      return res.status(404).send({ auth: false, message: 'User Not Found' })
+    }
+
+    const bookFile = await req.bookService.getBookPDFPath((book.seller as User)._id, book._id)
+
+    if (bookFile == null) {
+      return res.status(404).send({ auth: false, message: 'Book PDF Not Found, the purchase was cancelled!' })
+    }
+
+    await somethingThatProcessThePurchase(req.user, book, req.userService)
+
+    res.send({ auth: true, message: 'Book successfully purchased!' })
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.startsWith('3032')) {
+        res.status(402).send({ auth: false, message: 'Sorry, the payment cannot be completed now.' })
+      }
+
+      if (error.message.startsWith('404')) {
+        res.status(404).send({ auth: false, message: error.message.split('|')[1] })
+      }
+    }
+
+    console.error(error)
+    return res.status(500).send({ auth: false, message: 'Internal Server Error' })
+  }
+}) as RequestHandler)
+
+router.get('/:id/download', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
+  try {
+    const { id } = req.params
+    const book = await req.bookService.getBookByID(id, true)
+
+    if (book == null) {
+      return res.status(404).send({ auth: false, message: 'Book Not Found' })
+    }
+
+    if (req.user != null) {
+      await UpdateLastSeenInsideHandler(req.user, req.userService)
+    }
+
+    if (req.user == null) {
+      return res.status(404).send({ auth: false, message: 'User Not Found' })
+    }
+
+    const hasBook = (req.user.details.purchasedBooks as string[]).includes(book._id)
+
+    if (!hasBook) {
+      return res.status(402).send({ auth: false, message: 'You haven\'t bought this book yet!' })
+    }
+
+    const bookFile = await req.bookService.getBookPDFPath((book.seller as User)._id, book._id)
+
+    if (bookFile == null) {
+      return res.status(404).send({ auth: false, message: 'Book PDF Not Found' })
+    }
+
+    res.sendFile(bookFile)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).send({ auth: false, message: 'Internal Server Error' })
+  }
 }) as RequestHandler)
 
 export default router

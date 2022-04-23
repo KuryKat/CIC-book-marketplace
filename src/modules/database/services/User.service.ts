@@ -2,10 +2,12 @@ import { Model, FilterQuery } from 'mongoose'
 import UpdateUserDTO from '../interfaces/User/UpdateUser.DTO'
 import UserDTO from '../interfaces/User/User.DTO'
 import { User, UserDocument } from '../schemas/User.schema'
+import BookService from './Book.service'
 
 export default class UserService {
   constructor (
-    private readonly UserModel: Model<UserDocument>
+    private readonly UserModel: Model<UserDocument>,
+    private readonly bookService: BookService
   ) { }
 
   async createUser (newUser: UserDTO): Promise<User> {
@@ -100,6 +102,7 @@ export default class UserService {
         dbUser.details.role = updatedUser.details.role
         break
       case 'auto':
+        dbUser.details.purchasedBooks = updatedUser.details.purchasedBooks
         dbUser.details.dates.lastSeen = updatedUser.details.dates.lastSeen
         dbUser.details.balance = updatedUser.details.balance
         dbUser.details.booksSold = updatedUser.details.booksSold
@@ -111,6 +114,12 @@ export default class UserService {
 
   async deleteUser (userID: string): Promise<boolean> {
     const result = await this.UserModel.findByIdAndDelete(userID).exec()
+    const books = await this.bookService.getBooksBySeller(userID)
+
+    for (const book of books) {
+      await this.bookService.deleteBook(book._id)
+    }
+
     return result != null
   }
 }

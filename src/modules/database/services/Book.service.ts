@@ -8,7 +8,7 @@ import UpdateBookDTO from '../interfaces/Book/UpdateBook.DTO'
 import { Book, BookDocument } from '../schemas/Book.schema'
 
 export default class BookService {
-  readonly storagePath = join(process.cwd(), 'storage', 'books')
+  private readonly storagePath = join(process.cwd(), 'storage', 'books')
 
   constructor (
     private readonly BookModel: Model<BookDocument>
@@ -107,6 +107,12 @@ export default class BookService {
   }
 
   async deleteBook (bookID: string): Promise<boolean> {
+    const bookToDelete = await this.BookModel.findById(bookID).exec()
+    if (bookToDelete == null) {
+      return false
+    }
+    await this.deleteBookPDF(bookToDelete.seller as string, bookID)
+
     const result = await this.BookModel.findByIdAndDelete(bookID).exec()
     return result != null
   }
@@ -136,12 +142,26 @@ export default class BookService {
     }
   }
 
-  async getBookPDF (sellerID: string, bookID: string): Promise<BookPDF | undefined> {
+  async getBookPDFPath (sellerID: string, bookID: string): Promise<string | undefined> {
     try {
       const folder = join(this.storagePath, sellerID, bookID)
-      const file = (await readdir(folder))[0]
+      const files = await readdir(folder)
+      return join(folder, files[0])
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.startsWith('ENOENT')) {
+          return
+        }
+      }
+      console.error(error)
+    }
+  }
+
+  async getBookPDF (sellerID: string, bookID: string): Promise<BookPDF | undefined> {
+    try {
+      const file = await this.getBookPDFPath(sellerID, bookID)
       if (file != null) {
-        const data = await readFile(join(folder, file))
+        const data = await readFile(file)
         return {
           type: file,
           data

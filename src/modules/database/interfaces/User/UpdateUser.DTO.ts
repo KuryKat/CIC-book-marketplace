@@ -1,3 +1,4 @@
+import { Book } from '@modules/database/schemas/Book.schema'
 import { UserRoles } from './User.DTO'
 
 export default interface UpdateUserDTO {
@@ -9,6 +10,7 @@ export default interface UpdateUserDTO {
     role: UserRoles
     balance: number
     booksSold: number
+    purchasedBooks: string[] | Book[]
     dates: {
       lastSeen: Date
     }

@@ -30,8 +30,9 @@ logger('info', 'Running on NodeJS: ' + process.version)
 
 const db = new DatabaseService()
 db.build()
-app.request.bookService = new BookService(db.BookModel)
-app.request.userService = new UserService(db.UserModel)
+const bookService = new BookService(db.BookModel)
+app.request.bookService = bookService
+app.request.userService = new UserService(db.UserModel, bookService)
 
 // Routes Use
 app.use('/', indexRouter)

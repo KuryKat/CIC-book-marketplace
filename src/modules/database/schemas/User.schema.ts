@@ -21,6 +21,7 @@ export class User {
             role: UserRoles.user,
             balance: 0,
             booksSold: 0,
+            purchasedBooks: [],
             dates: {
               lastSeen: new Date(),
               joined: new Date()
@@ -76,6 +77,15 @@ export const userSchema = new Schema({
     booksSold: {
       default: 0,
       type: Number
+    },
+    purchasedBooks: {
+      default: [],
+      type: [
+        {
+          ref: 'books',
+          type: String
+        }
+      ]
     },
     dates: {
       lastSeen: {

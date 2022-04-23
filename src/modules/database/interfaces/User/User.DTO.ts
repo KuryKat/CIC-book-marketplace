@@ -1,3 +1,5 @@
+import { Book } from '@modules/database/schemas/Book.schema'
+
 export enum UserRoles {
   user,
   seller,
@@ -10,6 +12,7 @@ export interface UserDetails {
   role: UserRoles
   balance: number
   booksSold: number
+  purchasedBooks: string[] | Book[]
   dates: {
     lastSeen: Date
     joined: Date
