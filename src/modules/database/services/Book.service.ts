@@ -1,12 +1,24 @@
+import { stat } from 'fs'
+import { mkdir, readdir, readFile, rm, writeFile } from 'fs/promises'
 import { Model, FilterQuery } from 'mongoose'
+import { join } from 'path'
 import BookDTO from '../interfaces/Book/Book.DTO'
+import BookPDF from '../interfaces/Book/BookPDF'
 import UpdateBookDTO from '../interfaces/Book/UpdateBook.DTO'
 import { Book, BookDocument } from '../schemas/Book.schema'
 
 export default class BookService {
+  readonly storagePath = join(process.cwd(), 'storage', 'books')
+
   constructor (
     private readonly BookModel: Model<BookDocument>
-  ) { }
+  ) {
+    stat(this.storagePath, (err) => {
+      if (err != null) {
+        mkdir(this.storagePath, { recursive: true }).catch(console.error)
+      }
+    })
+  }
 
   async createBook (newBook: BookDTO): Promise<Book> {
     return new Book(await (new this.BookModel(newBook)).save())
@@ -97,5 +109,51 @@ export default class BookService {
   async deleteBook (bookID: string): Promise<boolean> {
     const result = await this.BookModel.findByIdAndDelete(bookID).exec()
     return result != null
+  }
+
+  async writeBookPDF (sellerID: string, bookID: string, bookName: string, bookData: string | Buffer): Promise<void> {
+    const folder = join(this.storagePath, sellerID, bookID)
+
+    await this.deleteBookPDF(sellerID, bookID)
+    await mkdir(folder, { recursive: true })
+    await writeFile(join(folder, `${bookName}.pdf`), bookData)
+  }
+
+  async deleteBookPDF (sellerID: string, bookID: string): Promise<void> {
+    try {
+      const folder = join(this.storagePath, sellerID, bookID)
+      await rm(folder, {
+        recursive: true
+      })
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.startsWith('ENOENT')) {
+          return
+        }
+      }
+      console.error(`Failed to remove Book from storage >> (Book ID: ${bookID} | Seller ID: ${sellerID})`)
+      console.error(error)
+    }
+  }
+
+  async getBookPDF (sellerID: string, bookID: string): Promise<BookPDF | undefined> {
+    try {
+      const folder = join(this.storagePath, sellerID, bookID)
+      const file = (await readdir(folder))[0]
+      if (file != null) {
+        const data = await readFile(join(folder, file))
+        return {
+          type: file,
+          data
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.startsWith('ENOENT')) {
+          return
+        }
+      }
+      console.error(error)
+    }
   }
 }
