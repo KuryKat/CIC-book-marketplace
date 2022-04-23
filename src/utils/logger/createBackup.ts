@@ -1,4 +1,4 @@
-import moment from 'moment'
+import { DateTime } from 'luxon'
 import { open, writeFile } from 'fs/promises'
 import { createReadStream, createWriteStream, PathLike } from 'fs'
 import { promisify } from 'util'
@@ -33,7 +33,7 @@ const createFileName = async (defaultName: PathLike): Promise<string> => {
   }
 
   const nameGen = (): string => {
-    const timestamp = moment(new Date(), true).format('YYYY-MM-DD(HH_mm_ss)')
+    const timestamp = DateTime.now().toFormat('yyyy-MM-dd(HH_mm_ss)')
 
     const indexOfExtension = (defaultName as string).indexOf('.log.gz')
 
