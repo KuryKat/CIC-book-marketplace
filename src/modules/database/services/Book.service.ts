@@ -42,7 +42,7 @@ export default class BookService {
     } else if (sort === 'cheapest') {
       sortOrder = { price: 1 }
     } else if (sort === 'mostExpensive') {
-      sortOrder = { price: 1 }
+      sortOrder = { price: -1 }
     } else {
       sortOrder = { publicationDate: -1 }
     }
