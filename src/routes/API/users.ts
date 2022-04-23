@@ -1,4 +1,3 @@
-import { User } from '@modules/database/schemas/User.schema'
 import { RequestHandler, Router } from 'express'
 import { JsonWebTokenError, JwtPayload, verify } from 'jsonwebtoken'
 import { hash, genSalt } from 'bcryptjs'
@@ -13,9 +12,7 @@ const router = Router()
 
 router.get('/', (async (req, res) => {
   try {
-    const { search, sort, page, limit } = req.query
     const { authorization } = req.headers
-    let results: User[] = []
     let showAll = false
 
     if (authorization != null) {
@@ -38,16 +35,27 @@ router.get('/', (async (req, res) => {
       await UpdateLastSeenInsideHandler(user, req.userService)
     }
 
+    const { search, page, limit } = req.query
+    let { sort } = req.query
+
     const queryPage = Number.parseInt(page as string)
     const queryLimit = Number.parseInt(limit as string)
-    const pageNum = Number.isNaN(queryPage) ? 1 : queryPage < 1 ? 1 : queryPage
-    const limitNum = Number.isNaN(queryLimit) ? 1 : queryLimit < 1 ? 1 : (queryLimit > 10) ? 10 : queryLimit
+    let pageNum: number | undefined = Number.isNaN(queryPage) ? 1 : queryPage < 1 ? 1 : queryPage
+    let limitNum: number | undefined = Number.isNaN(queryLimit) ? 1 : queryLimit < 1 ? 1 : (queryLimit > 10) ? 10 : queryLimit
 
-    if (sort != null && typeof sort === 'string') {
-      results = await req.userService.getUser(search as string ?? '', showAll, sort, pageNum, limitNum)
-    } else {
-      results = await req.userService.getUser(search as string ?? '', showAll)
+    if (page == null) {
+      pageNum = undefined
     }
+
+    if (limit == null) {
+      limitNum = undefined
+    }
+
+    if (typeof sort !== 'string') {
+      sort = undefined
+    }
+
+    const results = await req.userService.getUser(search as string ?? '', showAll, sort, pageNum, limitNum)
 
     if (req.user != null) {
       await UpdateLastSeenInsideHandler(req.user, req.userService)

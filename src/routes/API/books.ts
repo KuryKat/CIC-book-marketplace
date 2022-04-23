@@ -1,4 +1,3 @@
-import { Book } from '@modules/database/schemas/Book.schema'
 import { RequestHandler, Router } from 'express'
 import { parse } from 'papaparse'
 import generateID from '@utils/generateID'
@@ -17,19 +16,27 @@ import somethingThatProcessThePurchase from '@utils/somethingThatProcessThePurch
 const router = Router()
 
 router.get('/', (async (req, res) => {
-  const { search, sort, page, limit } = req.query
-  let results: Book[] = []
+  const { search, page, limit } = req.query
+  let { sort } = req.query
 
   const queryPage = Number.parseInt(page as string)
   const queryLimit = Number.parseInt(limit as string)
-  const pageNum = Number.isNaN(queryPage) ? 1 : queryPage < 1 ? 1 : queryPage
-  const limitNum = Number.isNaN(queryLimit) ? 1 : queryLimit < 1 ? 1 : (queryLimit > 10) ? 10 : queryLimit
+  let pageNum: number | undefined = Number.isNaN(queryPage) ? 1 : queryPage < 1 ? 1 : queryPage
+  let limitNum: number | undefined = Number.isNaN(queryLimit) ? 1 : queryLimit < 1 ? 1 : (queryLimit > 10) ? 10 : queryLimit
 
-  if (sort != null && typeof sort === 'string') {
-    results = await req.bookService.getBook(search as string ?? '', sort, pageNum, limitNum)
-  } else {
-    results = await req.bookService.getBook(search as string ?? '')
+  if (page == null) {
+    pageNum = undefined
   }
+
+  if (limit == null) {
+    limitNum = undefined
+  }
+
+  if (typeof sort !== 'string') {
+    sort = undefined
+  }
+
+  const results = await req.bookService.getBook(search as string ?? '', sort, pageNum, limitNum)
 
   if (req.user != null) {
     await UpdateLastSeenInsideHandler(req.user, req.userService)
