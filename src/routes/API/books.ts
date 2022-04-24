@@ -12,6 +12,7 @@ import pdf from 'pdf-parse'
 import compareDates from '@utils/Dates/compareDates'
 import convertPDFDateToDate from '@utils/Dates/convertPdfDateToDate'
 import somethingThatProcessThePurchase from '@utils/somethingThatProcessThePurchase'
+import { logger } from '@utils/logger'
 
 const router = Router()
 
@@ -90,6 +91,7 @@ router.post('/', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
 
     res.send(createdBooks)
   } catch (error) {
+    logger('error', (error as Error).message)
     console.error(error)
     return res.status(500).send({ auth: false, message: 'Internal Server Error' })
   }
@@ -184,6 +186,7 @@ router.post('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) =>
       }
     }
 
+    logger('error', (error as Error).message)
     console.error(error)
     return res.status(500).send({ auth: false, message: 'Internal Server Error' })
   }
@@ -226,6 +229,7 @@ router.post('/:id/buy', ValidateToken, GetUser, UpdateLastSeen, (async (req, res
       }
     }
 
+    logger('error', (error as Error).message)
     console.error(error)
     return res.status(500).send({ auth: false, message: 'Internal Server Error' })
   }
@@ -262,6 +266,7 @@ router.get('/:id/download', ValidateToken, GetUser, UpdateLastSeen, (async (req,
 
     res.sendFile(bookFile)
   } catch (error) {
+    logger('error', (error as Error).message)
     console.error(error)
     return res.status(500).send({ auth: false, message: 'Internal Server Error' })
   }

@@ -44,12 +44,13 @@ app.use((_req, _res, next) => {
 })
 
 // Error Handler
-app.use((err: Error | HttpError | unknown, _req: Request, res: Response, _next: NextFunction) => {
-  if (err instanceof HttpError) {
-    return res.status(err.status).send({ auth: false, message: err.message })
+app.use((error: Error | HttpError | unknown, _req: Request, res: Response, _next: NextFunction) => {
+  if (error instanceof HttpError) {
+    return res.status(error.status).send({ auth: false, message: error.message })
   }
 
-  console.error(err)
+  logger('error', (error as Error).message)
+  console.error(error)
   return res.status(500).send({ auth: false, message: 'Internal Server Error' })
 })
 

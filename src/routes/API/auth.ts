@@ -7,6 +7,7 @@ import ValidateToken from '@utils/Middlewares/ValidateToken'
 import generateToken from '@utils/generateToken'
 import GetUser from '@utils/Middlewares/GetUser'
 import UpdateLastSeen, { UpdateLastSeenInsideHandler } from '@utils/Middlewares/UpdateLastSeen'
+import { logger } from '@utils/logger'
 
 const router = Router()
 
@@ -51,6 +52,7 @@ router.post('/register', (async (req, res) => {
       }
     }
 
+    logger('error', (error as Error).message)
     console.error(error)
     return res.status(500).send(
       {
@@ -86,6 +88,7 @@ router.post('/login', (async (req, res) => {
     await UpdateLastSeenInsideHandler(user, req.userService)
     res.send({ auth: true, token })
   } catch (error) {
+    logger('error', (error as Error).message)
     console.error(error)
     return res.status(500).send({ auth: false, message: 'Internal Server Error' })
   }

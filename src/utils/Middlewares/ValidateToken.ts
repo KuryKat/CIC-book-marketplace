@@ -1,6 +1,7 @@
 import { RequestHandler } from 'express'
 import { JsonWebTokenError, JwtPayload, verify } from 'jsonwebtoken'
 import { JWT } from '@config'
+import { logger } from '@utils/logger'
 
 export default (async (req, res, next) => {
   try {
@@ -21,6 +22,7 @@ export default (async (req, res, next) => {
       return res.status(401).send({ auth: false, message: 'Invalid Token.' })
     }
 
+    logger('error', (error as Error).message)
     console.error(error)
     return res.status(500).send({ auth: false, message: 'Internal Server Error' })
   }

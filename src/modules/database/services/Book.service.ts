@@ -1,3 +1,4 @@
+import { logger } from '@utils/logger'
 import { stat } from 'fs'
 import { mkdir, readdir, readFile, rm, writeFile } from 'fs/promises'
 import { Model, FilterQuery } from 'mongoose'
@@ -13,8 +14,8 @@ export default class BookService {
   constructor (
     private readonly BookModel: Model<BookDocument>
   ) {
-    stat(this.storagePath, (err) => {
-      if (err != null) {
+    stat(this.storagePath, (error) => {
+      if (error != null) {
         mkdir(this.storagePath, { recursive: true }).catch(console.error)
       }
     })
@@ -137,7 +138,8 @@ export default class BookService {
           return
         }
       }
-      console.error(`Failed to remove Book from storage >> (Book ID: ${bookID} | Seller ID: ${sellerID})`)
+
+      logger('error', `Failed to remove Book from storage >> (Book ID: ${bookID} | Seller ID: ${sellerID})`)
       console.error(error)
     }
   }
@@ -153,6 +155,7 @@ export default class BookService {
           return
         }
       }
+      logger('error', (error as Error).message)
       console.error(error)
     }
   }
@@ -173,6 +176,7 @@ export default class BookService {
           return
         }
       }
+      logger('error', (error as Error).message)
       console.error(error)
     }
   }

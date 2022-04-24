@@ -34,17 +34,17 @@ const cleanUp = (callback = defaultCallback): void => {
     cleanUpEmitter.emit('cleanUp')
   })
 
-  process.on('uncaughtException', err => {
+  process.on('uncaughtException', error => {
     logger('warn', 'Uncaught Exception...')
-    console.error(err)
-    logger('error', err)
+    console.error(error)
+    logger('error', error.message)
     cleanUpEmitter.emit('cleanUp')
   })
 
-  process.on('unhandledRejection', (err: Error) => {
+  process.on('unhandledRejection', (error: Error) => {
     logger('warn', 'Unhandled Rejection...')
-    console.error(err)
-    logger('error', err)
+    console.error(error)
+    logger('error', error.message)
     cleanUpEmitter.emit('cleanUp')
   })
 }

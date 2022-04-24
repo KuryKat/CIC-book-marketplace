@@ -11,7 +11,7 @@ export default class DatabaseService {
 
     const db = mongoose.connection
     db.on('open', () => logger('info', '[DATABASE] Connection to MongoDB successful!'))
-    db.on('error', console.error)
+    db.on('error', (error) => { console.error(error); logger('error', (error as Error).message) })
   }
 
   readonly BookModel = model('books', bookSchema)

@@ -72,8 +72,7 @@ const createBackupLog = async (latestLogPath: PathLike, backupLogPath: PathLike)
     logger('warn', 'Making the log file to backup...')
     await makeGZip(latestLogPath, backupLogPath)
     logger('info', 'Log file created! Backup Done!')
-    writeFile(latestLogPath, '')
-      .catch(console.error)
+    await writeFile(latestLogPath, '')
   } catch (error) {
     const { message } = error as fsError
     logger('error', 'Error when trying to backup the latest log: ' + message)
