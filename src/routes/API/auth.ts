@@ -39,7 +39,7 @@ router.post('/register', (async (req, res) => {
     const token = generateToken(_id, name)
 
     req.user = user
-    return res.send({ auth: true, token })
+    return res.status(201).send({ auth: true, token })
   } catch (error) {
     if (error instanceof MongooseErrors.ValidationError) {
       const errors = Object.values(error.errors)[0]

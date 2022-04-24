@@ -89,7 +89,7 @@ router.post('/', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
       createdBooks.push(await req.bookService.createBook(newBook))
     }
 
-    res.send(createdBooks)
+    res.status(201).send(createdBooks)
   } catch (error) {
     logger('error', (error as Error).message)
     console.error(error)
@@ -178,7 +178,7 @@ router.post('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) =>
 
     await req.bookService.writeBookPDF((book.seller as User)._id, id, book.title, bookPDF.data)
 
-    res.send({ auth: true, message: 'Book PDF successfully saved!' })
+    res.status(201).send({ auth: true, message: 'Book PDF successfully saved!' })
   } catch (error) {
     if (error instanceof Error) {
       if (error.name === 'InvalidPDFException') {
