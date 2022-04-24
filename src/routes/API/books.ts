@@ -89,7 +89,7 @@ router.post('/', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
       createdBooks.push(await req.bookService.createBook(newBook))
     }
 
-    res.status(201).send(createdBooks)
+    res.status(201).send({ auth: true, message: 'Books successfully created!' })
   } catch (error) {
     logger('error', (error as Error).message)
     console.error(error)
