@@ -112,14 +112,12 @@ export default class UserService {
     return new User(await dbUser.save())
   }
 
-  async deleteUser (userID: string): Promise<boolean> {
-    const result = await this.UserModel.findByIdAndDelete(userID).exec()
+  async deleteUser (userID: string): Promise<void> {
+    await this.UserModel.findByIdAndDelete(userID).exec()
     const books = await this.bookService.getBooksBySeller(userID)
 
     for (const book of books) {
-      await this.bookService.deleteBook(book._id)
+      await this.bookService.deleteBook(userID, book._id)
     }
-
-    return result != null
   }
 }

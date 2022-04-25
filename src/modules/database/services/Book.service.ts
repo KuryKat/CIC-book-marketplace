@@ -31,7 +31,7 @@ export default class BookService {
 
     if (search.length > 0) {
       const regex = { $regex: search, $options: 'i' }
-      params.$or = [{ title: regex }, { authors: regex }, { publisher: regex }, { price: regex }, { seller: regex }]
+      params.$or = [{ title: regex }, { authors: regex }, { publisher: regex }, { seller: regex }]
     }
 
     if (sort === 'recent') {
@@ -63,8 +63,12 @@ export default class BookService {
     return formatedBooks
   }
 
-  async getBooksBySeller (sellerID: string): Promise<Book[]> {
-    const books = await this.BookModel.find({ seller: sellerID }).exec()
+  async getBooksBySeller (sellerID: string, page = 1, limit = 10): Promise<Book[]> {
+    const books = await this.BookModel
+      .find({ seller: sellerID })
+      .limit(limit)
+      .skip((page - 1) * limit)
+      .exec()
     const formatedBooks = []
     for (const book of books) {
       formatedBooks.push(new Book(book))
@@ -107,15 +111,9 @@ export default class BookService {
     return new Book(await dbBook.save())
   }
 
-  async deleteBook (bookID: string): Promise<boolean> {
-    const bookToDelete = await this.BookModel.findById(bookID).exec()
-    if (bookToDelete == null) {
-      return false
-    }
-    await this.deleteBookPDF(bookToDelete.seller as string, bookID)
-
-    const result = await this.BookModel.findByIdAndDelete(bookID).exec()
-    return result != null
+  async deleteBook (sellerID: string, bookID: string): Promise<void> {
+    await this.deleteBookPDF(sellerID, bookID)
+    await this.BookModel.findByIdAndDelete(bookID).exec()
   }
 
   async writeBookPDF (sellerID: string, bookID: string, bookName: string, bookData: string | Buffer): Promise<void> {
