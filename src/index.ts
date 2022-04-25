@@ -13,6 +13,7 @@ import fileUpload from 'express-fileupload'
 // Routes Import
 import indexRouter from '@routes/index'
 import apiRouter from '@routes/API'
+import swaggerDocs from '@utils/swagger/swagger'
 
 const app = express()
 app.use(express.json())
@@ -37,6 +38,7 @@ app.request.userService = new UserService(db.UserModel, bookService)
 // Routes Use
 app.use('/', indexRouter)
 app.use('/api', apiRouter)
+swaggerDocs(app)
 
 // catch 404 and forward to error handler
 app.use((_req, _res, next) => {

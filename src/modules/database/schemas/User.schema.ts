@@ -1,6 +1,31 @@
 import { Document, Schema } from 'mongoose'
 import UserDTO, { UserDetails, UserRoles } from '../interfaces/User/User.DTO'
 
+/**
+ * @openapi
+ * components:
+ *  schemas:
+ *    User:
+ *      type: object
+ *      required:
+ *        - _id
+ *        - name
+ *        - email
+ *      properties:
+ *        _id:
+ *          type: string
+ *        name:
+ *          type: string
+ *        email:
+ *          type: string
+ *          format: email
+ *        password:
+ *          type: string
+ *          format: password
+ *          nullable: true
+ *        details:
+ *          $ref: '#/components/schemas/UserDetails'
+ */
 export class User {
   constructor ({
     _id,

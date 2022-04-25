@@ -2,6 +2,42 @@ import { Document, Schema } from 'mongoose'
 import BookDTO from '../interfaces/Book/Book.DTO'
 import { User } from './User.schema'
 
+/**
+ * @openapi
+ * components:
+ *  schemas:
+ *    Book:
+ *      type: object
+ *      required:
+ *        - _id
+ *        - title
+ *        - authors
+ *        - pages
+ *        - publicationDate
+ *        - publisher
+ *        - price
+ *        - seller
+ *      properties:
+ *          _id:
+ *            type: string
+ *          title:
+ *            type: string
+ *          authors:
+ *            type: string
+ *          pages:
+ *            type: number
+ *          publicationDate:
+ *            type: string
+ *            format: date-time
+ *          publisher:
+ *            type: string
+ *          price:
+ *            type: number
+ *          seller:
+ *            oneOf:
+ *              - type: string
+ *              - $ref: '#/components/schemas/User'
+ */
 export class Book {
   constructor ({
     _id,

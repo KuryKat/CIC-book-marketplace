@@ -18,6 +18,60 @@ import HTTPError from '@utils/Errors/HTTPError'
 
 const router = Router()
 
+/**
+ * @openapi
+ * paths:
+ *  '/api/books':
+ *    get:
+ *      tags:
+ *        - Books
+ *      summary: Get books
+ *      description: >
+ *        Get multiple books from a search or from different sort orders<br><br>
+  *      parameters:
+ *        - in: query
+ *          name: sort
+ *          schema:
+ *            type: string
+ *            enum: ["recent", "smallest", "biggest", "cheapest", "mostExpensive"]
+ *          description: The sort order for the retrieved books
+ *        - in: query
+ *          name: search
+ *          schema:
+ *            type: string
+ *          description: "The search string to search on the books (it searchs on the following fields: title, authors, publisher)"
+ *        - in: query
+ *          name: page
+ *          schema:
+ *            type: number
+ *          description: The page number
+ *        - in: query
+ *          name: limit
+ *          schema:
+ *            type: number
+ *          description: The limit of books to retrieve
+ *      responses:
+ *        200:
+ *          description: OK
+ *          content:
+ *            application/json:
+ *              schema:
+ *                default: []
+ *                type: array
+ *                items:
+ *                  $ref: '#/components/schemas/Book'
+ *                example:
+ *                  - _id: '6916625884354668544'
+ *                    title: 'Harry Potter and the Half-Blood Prince (Harry Potter  #6)'
+ *                    authors: J.K. Rowling/Mary GrandPré
+ *                    pages: 873
+ *                    publicationDate: '2006-09-16T03:00:00.000Z'
+ *                    publisher: Scholastic Inc.
+ *                    price: 93.57
+ *                    seller: '6915856544374155264'
+ *        default:
+ *          $ref: '#/components/responses/InternalServerError'
+ */
 router.get('/', (async (req, res) => {
   try {
     const { search, page, limit } = req.query
@@ -54,6 +108,63 @@ router.get('/', (async (req, res) => {
   }
 }) as RequestHandler)
 
+/**
+ * @openapi
+ * paths:
+ *  '/api/books':
+ *    post:
+ *      tags:
+ *        - Books
+ *      summary: Post new Books
+ *      description: >
+ *        **REQUIRES** Token to validate user <br><br>
+ *        This endpoint **REQUIRES** a valid CSV uploaded in a multipart/form-data
+ *      security:
+ *        - bearerAuth: []
+ *      requestBody:
+ *        summary: File in CSV format to upload new books into the API
+ *        required: true
+ *        content:
+ *          multipart/form-data:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                attachment:
+ *                  type: string
+ *                  format: binary
+ *      responses:
+ *        201:
+ *          description: Successfully Created Books
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: array
+ *                items:
+ *                  $ref: '#/components/schemas/Book'
+ *                example:
+ *                  - _id: '6916625884354668544'
+ *                    title: 'Harry Potter and the Half-Blood Prince (Harry Potter  #6)'
+ *                    authors: J.K. Rowling/Mary GrandPré
+ *                    pages: 873
+ *                    publicationDate: '2006-09-16T03:00:00.000Z'
+ *                    publisher: Scholastic Inc.
+ *                    price: 93.57
+ *                    seller: '6915856544374155264'
+ *        400:
+ *          $ref: '#/components/responses/BadRequest'
+ *        401:
+ *          $ref: '#/components/responses/Unauthorized'
+ *        403:
+ *          $ref: '#/components/responses/Forbidden'
+ *        404:
+ *          $ref: '#/components/responses/NotFound'
+ *        413:
+ *          $ref: '#/components/responses/PayloadTooLarge'
+ *        415:
+ *          $ref: '#/components/responses/UnsupportedMediaType'
+ *        default:
+ *          $ref: '#/components/responses/InternalServerError'
+ */
 router.post('/', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
   try {
     if (req.user == null) {
@@ -133,6 +244,34 @@ router.post('/', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
   }
 }) as RequestHandler)
 
+/**
+ * @openapi
+ * paths:
+ *  '/api/books/{id}':
+ *    get:
+ *      tags:
+ *        - Books
+ *      summary: Get a Book from ID
+ *      parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          schema:
+ *            type: string
+ *          description: The Book ID
+ *          example: "6916625884354668544"
+ *      responses:
+ *        200:
+ *          description: OK
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: '#/components/schemas/Book'
+ *        404:
+ *          $ref: '#/components/responses/NotFound'
+ *        default:
+ *          $ref: '#/components/responses/InternalServerError'
+ */
 router.get('/:id', (async (req, res) => {
   try {
     const { id } = req.params
@@ -154,6 +293,59 @@ router.get('/:id', (async (req, res) => {
   }
 }) as RequestHandler)
 
+/**
+ * @openapi
+ * paths:
+ *  '/api/books/{id}/seller':
+ *    get:
+ *      deprecated: true
+ *      tags:
+ *        - Books
+ *      summary: Get the Book Seller
+ *      description: >
+ *        This endoint is deprecated since isn't common to APIs to redirect, but can be used!
+ *      parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          schema:
+ *            type: string
+ *          description: The Book ID
+ *          example: "6916625884354668544"
+ *      responses:
+ *        200:
+ *          description: OK
+ *          content:
+ *            application/json:
+ *              schema:
+ *                default: {}
+ *                oneOf:
+ *                  - allOf:
+ *                    - $ref: '#/components/schemas/User'
+ *                    - properties:
+ *                        password:
+ *                          default: null
+ *                        email:
+ *                          nullable: true
+ *                          default: null
+ *                        details:
+ *                          properties:
+ *                            phone:
+ *                              nullable: true
+ *                              default: null
+ *                            balance:
+ *                              nullable: true
+ *                              default: null
+ *                  - allOf:
+ *                    - $ref: '#/components/schemas/User'
+ *                    - properties:
+ *                        password:
+ *                          default: null
+ *        404:
+ *          $ref: '#/components/responses/NotFound'
+ *        default:
+ *          $ref: '#/components/responses/InternalServerError'
+ */
 router.get('/:id/seller', (async (req, res) => {
   try {
     const { id } = req.params
@@ -175,6 +367,59 @@ router.get('/:id/seller', (async (req, res) => {
   }
 }) as RequestHandler)
 
+/**
+ * @openapi
+ * paths:
+ *  '/api/books/{id}':
+ *    post:
+ *      tags:
+ *        - Books
+ *      summary: Post PDF to a specific Book
+ *      description: >
+ *        **REQUIRES** Token to validate user <br><br>
+ *        This endpoint **REQUIRES** a valid PDF uploaded in a multipart/form-data body<br><br>
+ *        **The PDF metadata must match the same values that were given when uploading the book with CSV**<br>
+ *        Values that need to match: title, authors, numPages, publicationDate, publisher <br>
+ *        Respective values in PDF metadata: Title, Author, pages, CreationDate, Producer
+ *      security:
+ *        - bearerAuth: []
+ *      parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          schema:
+ *            type: string
+ *          description: The Book ID
+ *          example: "6916625884354668544"
+ *      requestBody:
+ *        summary: File in CSV format to upload new books into the API
+ *        required: true
+ *        content:
+ *          multipart/form-data:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                book:
+ *                  type: string
+ *                  format: binary
+ *      responses:
+ *        201:
+ *          $ref: '#/components/responses/Created'
+ *        400:
+ *          $ref: '#/components/responses/BadRequest'
+ *        401:
+ *          $ref: '#/components/responses/Unauthorized'
+ *        403:
+ *          $ref: '#/components/responses/Forbidden'
+ *        404:
+ *          $ref: '#/components/responses/NotFound'
+ *        413:
+ *          $ref: '#/components/responses/PayloadTooLarge'
+ *        415:
+ *          $ref: '#/components/responses/UnsupportedMediaType'
+ *        default:
+ *          $ref: '#/components/responses/InternalServerError'
+ */
 router.post('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
   try {
     const { id } = req.params
@@ -236,6 +481,41 @@ router.post('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) =>
   }
 }) as RequestHandler)
 
+/**
+ * @openapi
+ * paths:
+ *  '/api/books/{id}/buy':
+ *    post:
+ *      tags:
+ *        - Books
+ *      summary: Buy a Book
+ *      description: >
+ *        **REQUIRES** Token to validate user <br><br>
+ *        This endpoint simmulate a book purchase, updating both buyer's purchasedBooks and seller's balance/booksSold values
+ *      security:
+ *        - bearerAuth: []
+ *      parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          schema:
+ *            type: string
+ *          description: The Book ID
+ *          example: "6916625884354668544"
+ *      responses:
+ *        200:
+ *          $ref: '#/components/responses/OK'
+ *        400:
+ *          $ref: '#/components/responses/BadRequest'
+ *        401:
+ *          $ref: '#/components/responses/Unauthorized'
+ *        402:
+ *          $ref: '#/components/responses/PaymentRequired'
+ *        404:
+ *          $ref: '#/components/responses/NotFound'
+ *        default:
+ *          $ref: '#/components/responses/InternalServerError'
+ */
 router.post('/:id/buy', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
   try {
     const { id } = req.params
@@ -283,6 +563,44 @@ router.post('/:id/buy', ValidateToken, GetUser, UpdateLastSeen, (async (req, res
   }
 }) as RequestHandler)
 
+/**
+ * @openapi
+ * paths:
+ *  '/api/books/{id}/download':
+ *    get:
+ *      tags:
+ *        - Books
+ *      summary: Download a Book
+ *      description: >
+ *        **REQUIRES** Token to validate user <br><br>
+ *        This endpoint send the book file to download if the user have bought it
+ *      security:
+ *        - bearerAuth: []
+ *      parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          schema:
+ *            type: string
+ *          description: The Book ID
+ *          example: "6916625884354668544"
+ *      responses:
+ *        200:
+ *          description: The respective PDF file for the requested Book
+ *          content:
+ *            application/pdf:
+ *              schema:
+ *                type: file
+ *                format: binary
+ *        401:
+ *          $ref: '#/components/responses/Unauthorized'
+ *        403:
+ *          $ref: '#/components/responses/Forbidden'
+ *        404:
+ *          $ref: '#/components/responses/NotFound'
+ *        default:
+ *          $ref: '#/components/responses/InternalServerError'
+ */
 router.get('/:id/download', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
   try {
     const { id } = req.params
@@ -316,6 +634,39 @@ router.get('/:id/download', ValidateToken, GetUser, UpdateLastSeen, (async (req,
   }
 }) as RequestHandler)
 
+/**
+ * @openapi
+ * paths:
+ *  '/api/books/{id}':
+ *    delete:
+ *      tags:
+ *        - Books
+ *      summary: Deletes a Book
+ *      description: >
+ *        **REQUIRES** Token to validate user <br><br>
+ *        This endpoint deletes the book from the database and the PDF file from the storage (if it exists)
+ *      security:
+ *        - bearerAuth: []
+ *      parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          schema:
+ *            type: string
+ *          description: The Book ID
+ *          example: "6916625884572772352"
+ *      responses:
+ *        200:
+ *          $ref: '#/components/responses/OK'
+ *        401:
+ *          $ref: '#/components/responses/Unauthorized'
+ *        403:
+ *          $ref: '#/components/responses/Forbidden'
+ *        404:
+ *          $ref: '#/components/responses/NotFound'
+ *        default:
+ *          $ref: '#/components/responses/InternalServerError'
+ */
 router.delete('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
   try {
     const { id } = req.params

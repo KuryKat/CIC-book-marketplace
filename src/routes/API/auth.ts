@@ -11,6 +11,56 @@ import { logger } from '@utils/logger'
 
 const router = Router()
 
+/**
+ * @openapi
+ * paths:
+ *  '/api/auth/register':
+ *    post:
+ *      tags:
+ *        - Auth
+ *      summary: Register an user and generate an access token
+ *      description: >
+ *        This endpoint **require** a correct Body to work,
+ *        otherwise it will return ___400___ for missing fields or duplicated emails
+ *      requestBody:
+ *        description: Data  **required** for user creation
+ *        required: true
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              required:
+ *                - name
+ *                - email
+ *                - password
+ *              properties:
+ *                name:
+ *                  type: string
+ *                email:
+ *                  type: string
+ *                  format: email
+ *                password:
+ *                  type: string
+ *                  format: password
+ *              example:
+ *                name: "Kury"
+ *                email: "kury@mail.co"
+ *                password: "fries123"
+ *      responses:
+ *        201:
+ *          allOf:
+ *            - $ref: '#/components/responses/Created'
+ *            - content:
+ *                application/json:
+ *                  schema:
+ *                    $ref: '#/components/schemas/SuccessfulLogin'
+ *        400:
+ *          $ref: '#/components/responses/BadRequest'
+ *        409:
+ *          $ref: '#/components/responses/Conflict'
+ *        default:
+ *          $ref: '#/components/responses/InternalServerError'
+ */
 router.post('/register', (async (req, res) => {
   try {
     const { password, name, email } = req.body
@@ -59,8 +109,88 @@ router.post('/register', (async (req, res) => {
   }
 }) as RequestHandler)
 
+/**
+ * @openapi
+ * paths:
+ *  '/api/auth/@me':
+ *    get:
+ *      tags:
+ *        - Auth
+ *      summary: Get information about your user on the database
+ *      description: >
+ *        **REQUIRES** Token to validate user
+ *      security:
+ *        - bearerAuth: []
+ *      responses:
+ *        200:
+ *          description: OK
+ *          content:
+ *            application/json:
+ *              schema:
+ *                default: {}
+ *                oneOf:
+ *                  - allOf:
+ *                    - $ref: '#/components/schemas/User'
+ *                    - properties:
+ *                        password:
+ *                          default: null
+ *        401:
+ *          $ref: '#/components/responses/Unauthorized'
+ *        404:
+ *          $ref: '#/components/responses/NotFound'
+ *        default:
+ *          $ref: '#/components/responses/InternalServerError'
+ */
 router.get('/@me', ValidateToken, GetUser, UpdateLastSeen, (req, res) => res.send(req.user ?? {}))
 
+/**
+ * @openapi
+ * paths:
+ *  '/api/auth/login':
+ *    post:
+ *      tags:
+ *        - Auth
+ *      summary: Make Login to generate an access token
+ *      description: >
+ *        This endpoint **require** a correct Body to work,
+ *        otherwise it will return ___400___ for missing fields or duplicated emails
+ *      requestBody:
+ *        description: Data  **required** for login
+ *        required: true
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              required:
+ *                - email
+ *                - password
+ *              properties:
+ *                email:
+ *                  type: string
+ *                  format: email
+ *                password:
+ *                  type: string
+ *                  format: password
+ *              example:
+ *                email: "kury@mail.co"
+ *                password: "fries123"
+ *      responses:
+ *        200:
+ *          allOf:
+ *            - $ref: '#/components/responses/OK'
+ *            - content:
+ *                application/json:
+ *                  schema:
+ *                    $ref: '#/components/schemas/SuccessfulLogin'
+ *        400:
+ *          $ref: '#/components/responses/BadRequest'
+ *        401:
+ *          $ref: '#/components/responses/Unauthorized'
+ *        404:
+ *          $ref: '#/components/responses/NotFound'
+ *        default:
+ *          $ref: '#/components/responses/InternalServerError'
+ */
 router.post('/login', (async (req, res) => {
   try {
     const { email, password } = req.body
