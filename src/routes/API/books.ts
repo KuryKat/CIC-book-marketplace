@@ -13,6 +13,7 @@ import compareDates from '@utils/Dates/compareDates'
 import convertPDFDateToDate from '@utils/Dates/convertPdfDateToDate'
 import somethingThatProcessThePurchase from '@utils/somethingThatProcessThePurchase'
 import { logger } from '@utils/logger'
+import HTTPError from '@utils/Errors/HTTPError'
 
 const router = Router()
 
@@ -201,8 +202,8 @@ router.post('/:id/buy', ValidateToken, GetUser, UpdateLastSeen, (async (req, res
       return res.status(404).send({ auth: false, message: 'Book Not Found' })
     }
 
-    if (req.user != null) {
-      await UpdateLastSeenInsideHandler(req.user, req.userService)
+    if (book.seller == null) {
+      return res.status(404).send({ auth: false, message: 'Seller Not Found' })
     }
 
     if (req.user == null) {
@@ -219,13 +220,17 @@ router.post('/:id/buy', ValidateToken, GetUser, UpdateLastSeen, (async (req, res
 
     res.send({ auth: true, message: 'Book successfully purchased!' })
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.startsWith('3032')) {
-        res.status(402).send({ auth: false, message: 'Sorry, the payment cannot be completed now.' })
+    if (error instanceof HTTPError) {
+      if (error.code === 402) {
+        return res.status(402).send({ auth: false, message: error.message })
       }
 
-      if (error.message.startsWith('404')) {
-        res.status(404).send({ auth: false, message: error.message.split('|')[1] })
+      if (error.code === 404) {
+        return res.status(404).send({ auth: false, message: error.message })
+      }
+
+      if (error.code === 400) {
+        return res.status(400).send({ auth: false, message: error.message })
       }
     }
 
