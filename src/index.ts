@@ -49,6 +49,10 @@ app.use((error: Error | HttpError | unknown, _req: Request, res: Response, _next
     return res.status(error.status).send({ auth: false, message: error.message })
   }
 
+  if (error instanceof SyntaxError && error.message.includes('JSON')) {
+    return res.status(400).send({ auth: false, message: `You sent an invalid JSON - ${error.message}` })
+  }
+
   logger('error', (error as Error).message)
   console.error(error)
   return res.status(500).send({ auth: false, message: 'Internal Server Error' })
