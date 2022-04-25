@@ -1,3 +1,4 @@
+import { Error as MongooseErrors } from 'mongoose'
 import { RequestHandler, Router } from 'express'
 import { parse } from 'papaparse'
 import generateID from '@utils/generateID'
@@ -18,33 +19,39 @@ import HTTPError from '@utils/Errors/HTTPError'
 const router = Router()
 
 router.get('/', (async (req, res) => {
-  const { search, page, limit } = req.query
-  let { sort } = req.query
+  try {
+    const { search, page, limit } = req.query
+    let { sort } = req.query
 
-  const queryPage = Number.parseInt(page as string)
-  const queryLimit = Number.parseInt(limit as string)
-  let pageNum: number | undefined = Number.isNaN(queryPage) ? 1 : queryPage < 1 ? 1 : queryPage
-  let limitNum: number | undefined = Number.isNaN(queryLimit) ? 1 : queryLimit < 1 ? 1 : (queryLimit > 10) ? 10 : queryLimit
+    const queryPage = Number.parseInt(page as string)
+    const queryLimit = Number.parseInt(limit as string)
+    let pageNum: number | undefined = Number.isNaN(queryPage) ? 1 : queryPage < 1 ? 1 : queryPage
+    let limitNum: number | undefined = Number.isNaN(queryLimit) ? 1 : queryLimit < 1 ? 1 : (queryLimit > 10) ? 10 : queryLimit
 
-  if (page == null) {
-    pageNum = undefined
+    if (page == null) {
+      pageNum = undefined
+    }
+
+    if (limit == null) {
+      limitNum = undefined
+    }
+
+    if (typeof sort !== 'string') {
+      sort = undefined
+    }
+
+    const results = await req.bookService.getBook(search as string ?? '', sort, pageNum, limitNum)
+
+    if (req.user != null) {
+      await UpdateLastSeenInsideHandler(req.user, req.userService)
+    }
+
+    return res.json(results)
+  } catch (error) {
+    logger('error', (error as Error).message)
+    console.error(error)
+    return res.status(500).send({ auth: false, message: 'Internal Server Error' })
   }
-
-  if (limit == null) {
-    limitNum = undefined
-  }
-
-  if (typeof sort !== 'string') {
-    sort = undefined
-  }
-
-  const results = await req.bookService.getBook(search as string ?? '', sort, pageNum, limitNum)
-
-  if (req.user != null) {
-    await UpdateLastSeenInsideHandler(req.user, req.userService)
-  }
-
-  return res.json(results)
 }) as RequestHandler)
 
 router.post('/', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
@@ -54,20 +61,44 @@ router.post('/', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
     }
 
     if (req.user.details.role < UserRoles.seller) {
-      return res.status(401).send({ auth: false, message: 'You\'re not an authorized seller! If you think this is a mistake, talk to our staff!' })
+      return res.status(403).send({ auth: false, message: 'You\'re not an authorized seller! If you think this is a mistake, talk to our staff!' })
     }
 
     const attachment = req.files?.attachment
 
     if (attachment == null) {
-      return res.status(400).send({ auth: false, message: 'File Not Found' })
+      return res.status(400).send({ auth: false, message: 'File is required' })
     }
 
     if (Array.isArray(attachment)) {
-      return res.status(400).send({ auth: false, message: 'Too Many Files' })
+      return res.status(413).send({ auth: false, message: 'Too Many Files' })
     }
 
+    const csvMimetypes = [
+      'text/csv',
+      'text/x-csv',
+      'application/csv',
+      'application/x-csv',
+      'application/vnd.ms-excel',
+      'text/comma-separated-values',
+      'text/x-comma-separated-values',
+      'text/tab-separated-values'
+    ]
+
+    if (!(csvMimetypes.includes(attachment.mimetype))) {
+      return res.status(415).send({ auth: false, message: 'Invalid File Type! it needs to be a valid CSV file!' })
+    }
+
+    const headers = ['title', 'authors', 'numPages', 'publicationDate', 'publisher', 'price']
     const books = parse(attachment.data.toString(), { header: true, delimiter: ',', quoteChar: '🙌' }).data as CreateBookDTO[]
+    const fileNotEmpty =
+    books.shift() != null &&
+    Object.keys(books.shift() as CreateBookDTO)
+      .every((fileHeader, index) => fileHeader === headers[index])
+
+    if (!fileNotEmpty) {
+      return res.status(400).send({ auth: false, message: 'Invalid File! This file isn\'t formatted correctly or is empty' })
+    }
 
     const createdBooks = []
     for (const book of books) {
@@ -90,8 +121,12 @@ router.post('/', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
       createdBooks.push(await req.bookService.createBook(newBook))
     }
 
-    res.status(201).send({ auth: true, message: 'Books successfully created!' })
+    return res.status(201).send({ auth: true, message: 'Books successfully created!' })
   } catch (error) {
+    if (error instanceof MongooseErrors.ValidationError) {
+      return res.status(400).send({ auth: false, message: 'Some of the fields on your document was invalid, check your values to see if they match the requirements (Make sure to not leave any empty line in the document)' })
+    }
+
     logger('error', (error as Error).message)
     console.error(error)
     return res.status(500).send({ auth: false, message: 'Internal Server Error' })
@@ -99,36 +134,6 @@ router.post('/', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
 }) as RequestHandler)
 
 router.get('/:id', (async (req, res) => {
-  const { id } = req.params
-  const book = await req.bookService.getBookByID(id, true)
-
-  if (book == null) {
-    return res.status(404).send({ auth: false, message: 'Book Not Found' })
-  }
-
-  if (req.user != null) {
-    await UpdateLastSeenInsideHandler(req.user, req.userService)
-  }
-
-  res.send(book)
-}) as RequestHandler)
-
-router.get('/:id/seller', (async (req, res) => {
-  const { id } = req.params
-  const book = await req.bookService.getBookByID(id, true)
-
-  if (book == null) {
-    return res.status(404).send({ auth: false, message: 'Book Not Found' })
-  }
-
-  if (req.user != null) {
-    await UpdateLastSeenInsideHandler(req.user, req.userService)
-  }
-
-  res.redirect('/api/users/' + (book.seller as User)._id)
-}) as RequestHandler)
-
-router.post('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
   try {
     const { id } = req.params
     const book = await req.bookService.getBookByID(id, true)
@@ -141,26 +146,64 @@ router.post('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) =>
       await UpdateLastSeenInsideHandler(req.user, req.userService)
     }
 
+    res.send(book)
+  } catch (error) {
+    logger('error', (error as Error).message)
+    console.error(error)
+    return res.status(500).send({ auth: false, message: 'Internal Server Error' })
+  }
+}) as RequestHandler)
+
+router.get('/:id/seller', (async (req, res) => {
+  try {
+    const { id } = req.params
+    const book = await req.bookService.getBookByID(id, true)
+
+    if (book == null) {
+      return res.status(404).send({ auth: false, message: 'Book Not Found' })
+    }
+
+    if (req.user != null) {
+      await UpdateLastSeenInsideHandler(req.user, req.userService)
+    }
+
+    res.redirect('/api/users/' + (book.seller as User)._id)
+  } catch (error) {
+    logger('error', (error as Error).message)
+    console.error(error)
+    return res.status(500).send({ auth: false, message: 'Internal Server Error' })
+  }
+}) as RequestHandler)
+
+router.post('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
+  try {
+    const { id } = req.params
+    const book = await req.bookService.getBookByID(id, true)
+
+    if (book == null) {
+      return res.status(404).send({ auth: false, message: 'Book Not Found' })
+    }
+
     if (req.user == null) {
       return res.status(404).send({ auth: false, message: 'User Not Found' })
     }
 
     if (req.user.details.role < UserRoles.seller) {
-      return res.status(401).send({ auth: false, message: 'You\'re not an authorized seller! If you think this is a mistake, talk to our staff!' })
+      return res.status(403).send({ auth: false, message: 'You\'re not an authorized seller! If you think this is a mistake, talk to our staff!' })
     }
 
     if (req.user._id !== (book.seller as User)._id) {
-      return res.status(401).send({ auth: false, message: 'You\'re not this book\'s seller! If you think this is a mistake, talk to our staff!' })
+      return res.status(403).send({ auth: false, message: 'You\'re not this book\'s seller! If you think this is a mistake, talk to our staff!' })
     }
 
     const bookPDF = req.files?.book
 
     if (bookPDF == null) {
-      return res.status(400).send({ auth: false, message: 'File Not Found' })
+      return res.status(400).send({ auth: false, message: 'File  is required' })
     }
 
     if (Array.isArray(bookPDF)) {
-      return res.status(400).send({ auth: false, message: 'Too Many Files' })
+      return res.status(413).send({ auth: false, message: 'Too Many Files' })
     }
 
     const bookPDFData = await pdf(bookPDF.data)
@@ -179,11 +222,11 @@ router.post('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) =>
 
     await req.bookService.writeBookPDF((book.seller as User)._id, id, book.title, bookPDF.data)
 
-    res.status(201).send({ auth: true, message: 'Book PDF successfully saved!' })
+    return res.status(201).send({ auth: true, message: 'Book PDF successfully saved!' })
   } catch (error) {
     if (error instanceof Error) {
       if (error.name === 'InvalidPDFException') {
-        return res.status(400).send({ auth: false, message: 'Invalid File Type! it needs to be a valid PDF file!' })
+        return res.status(415).send({ auth: false, message: 'Invalid File Type! it needs to be a valid PDF file!' })
       }
     }
 
@@ -249,10 +292,6 @@ router.get('/:id/download', ValidateToken, GetUser, UpdateLastSeen, (async (req,
       return res.status(404).send({ auth: false, message: 'Book Not Found' })
     }
 
-    if (req.user != null) {
-      await UpdateLastSeenInsideHandler(req.user, req.userService)
-    }
-
     if (req.user == null) {
       return res.status(404).send({ auth: false, message: 'User Not Found' })
     }
@@ -260,7 +299,7 @@ router.get('/:id/download', ValidateToken, GetUser, UpdateLastSeen, (async (req,
     const hasBook = (req.user.details.purchasedBooks as string[]).includes(book._id)
 
     if (!hasBook) {
-      return res.status(402).send({ auth: false, message: 'You haven\'t bought this book yet!' })
+      return res.status(403).send({ auth: false, message: 'You haven\'t bought this book yet!' })
     }
 
     const bookFile = await req.bookService.getBookPDFPath((book.seller as User)._id, book._id)

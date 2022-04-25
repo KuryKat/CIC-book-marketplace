@@ -119,14 +119,34 @@ router.get('/:id', (async (req, res) => {
 }) as RequestHandler)
 
 router.get('/:id/books', (async (req, res) => {
-  const { id } = req.params
-  const books = await req.bookService.getBooksBySeller(id)
+  try {
+    const { id } = req.params
+    const { page, limit } = req.query
+    const queryPage = Number.parseInt(page as string)
+    const queryLimit = Number.parseInt(limit as string)
+    let pageNum: number | undefined = Number.isNaN(queryPage) ? 1 : queryPage < 1 ? 1 : queryPage
+    let limitNum: number | undefined = Number.isNaN(queryLimit) ? 1 : queryLimit < 1 ? 1 : (queryLimit > 10) ? 10 : queryLimit
 
-  if (req.user != null) {
-    await UpdateLastSeenInsideHandler(req.user, req.userService)
+    if (page == null) {
+      pageNum = undefined
+    }
+
+    if (limit == null) {
+      limitNum = undefined
+    }
+
+    const books = await req.bookService.getBooksBySeller(id, pageNum, limitNum)
+
+    if (req.user != null) {
+      await UpdateLastSeenInsideHandler(req.user, req.userService)
+    }
+
+    res.send(books)
+  } catch (error) {
+    logger('error', (error as Error).message)
+    console.error(error)
+    return res.status(500).send({ auth: false, message: 'Internal Server Error' })
   }
-
-  res.send(books)
 }) as RequestHandler)
 
 router.patch('/@me', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
@@ -191,7 +211,7 @@ router.patch('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) =
     }
 
     if (req.user.details.role < UserRoles.adm) {
-      return res.status(401).send({ auth: false, message: 'Access Denied' })
+      return res.status(403).send({ auth: false, message: 'Access Denied' })
     }
 
     let updatedUser = await req.userService.getUserByID(id)
@@ -201,11 +221,15 @@ router.patch('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) =
 
     const { role } = req.body
 
-    if (role != null && !(isNaN(role))) {
+    if (role == null) {
+      return res.status(400).send({ auth: false, message: 'Role field is required' })
+    }
+
+    if (typeof role !== 'number') {
       updatedUser.details.role = role
     }
 
-    updatedUser = await req.userService.updateUser(req.user, updatedUser, 'adm')
+    updatedUser = await req.userService.updateUser(updatedUser, updatedUser, 'adm')
     if (updatedUser == null) {
       return res.status(404).send({ auth: false, message: 'User Not Found' })
     }
@@ -217,6 +241,7 @@ router.patch('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) =
     return res.status(500).send({ auth: false, message: 'Internal Server Error' })
   }
 }) as RequestHandler)
+
 router.delete('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
   try {
     const { id } = req.params

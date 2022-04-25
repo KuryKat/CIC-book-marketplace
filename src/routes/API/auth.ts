@@ -48,17 +48,13 @@ router.post('/register', (async (req, res) => {
 
     if (error instanceof Error) {
       if (error.message.startsWith('E11000')) {
-        return res.status(400).send({ auth: false, message: 'Email already registered' })
+        return res.status(409).send({ auth: false, message: 'Email already registered' })
       }
     }
 
     logger('error', (error as Error).message)
     console.error(error)
-    return res.status(500).send(
-      {
-        auth: false,
-        message: 'Internal Server Error'
-      }
+    return res.status(500).send({ auth: false, message: 'Internal Server Error' }
     )
   }
 }) as RequestHandler)
