@@ -1,6 +1,6 @@
 {
     "name": "book-marketplace",
-    "version": "0.0.0",
+    "version": "1.0.0",
     "description": "Backend for a Book Marketplace",
     "main": "./src/index.ts",
     "repository": "https://github.com/KuryKat/CIC-book-marketplace",
