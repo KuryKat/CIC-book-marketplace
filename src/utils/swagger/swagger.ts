@@ -67,9 +67,9 @@ const options: Options = {
         UnsupportedMediaType
       }
     },
-    security: {
+    security: [{
       bearerAuth: []
-    },
+    }],
     tags: [
       { name: 'Users', description: 'Operations about users' },
       { name: 'Books', description: 'Operations about books' },
