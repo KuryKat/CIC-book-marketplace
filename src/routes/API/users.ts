@@ -1,3 +1,4 @@
+import { Error as MongooseErrors } from 'mongoose'
 import { RequestHandler, Router } from 'express'
 import { JsonWebTokenError, JwtPayload, verify } from 'jsonwebtoken'
 import { hash, genSalt } from 'bcryptjs'
@@ -165,9 +166,14 @@ router.patch('/@me', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) =
     const token = generateToken(updatedUser._id, updatedUser.name)
     res.send({ auth: true, token })
   } catch (error) {
+    if (error instanceof MongooseErrors.ValidationError) {
+      const errors = Object.values(error.errors)[0]
+      return res.status(400).send({ auth: false, message: `${errors.name} - ${errors.message}` })
+    }
+
     if (error instanceof Error) {
       if (error.message.startsWith('E11000')) {
-        return res.status(400).send({ auth: false, message: 'Email already registered' })
+        return res.status(409).send({ auth: false, message: 'Email already registered' })
       }
     }
 
@@ -204,7 +210,29 @@ router.patch('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) =
       return res.status(404).send({ auth: false, message: 'User Not Found' })
     }
 
-    res.send(updatedUser)
+    res.send({ auth: true, message: 'User Successfully Updated' })
+  } catch (error) {
+    logger('error', (error as Error).message)
+    console.error(error)
+    return res.status(500).send({ auth: false, message: 'Internal Server Error' })
+  }
+}) as RequestHandler)
+router.delete('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
+  try {
+    const { id } = req.params
+    if (req.user == null) {
+      return res.status(404).send({ auth: false, message: 'User Not Found' })
+    }
+
+    if (req.user._id !== id) {
+      if (req.user.details.role < UserRoles.adm) {
+        return res.status(403).send({ auth: false, message: 'Access Denied' })
+      }
+    }
+
+    await req.userService.deleteUser(id)
+
+    res.send({ auth: true, message: 'User Successfully Deleted' })
   } catch (error) {
     logger('error', (error as Error).message)
     console.error(error)
