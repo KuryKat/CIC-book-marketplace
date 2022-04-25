@@ -277,4 +277,35 @@ router.get('/:id/download', ValidateToken, GetUser, UpdateLastSeen, (async (req,
   }
 }) as RequestHandler)
 
+router.delete('/:id', ValidateToken, GetUser, UpdateLastSeen, (async (req, res) => {
+  try {
+    const { id } = req.params
+    const book = await req.bookService.getBookByID(id, true)
+
+    if (book == null) {
+      return res.status(404).send({ auth: false, message: 'Book Not Found' })
+    }
+
+    if (req.user == null) {
+      return res.status(404).send({ auth: false, message: 'User Not Found' })
+    }
+
+    if (req.user.details.role < UserRoles.seller) {
+      return res.status(403).send({ auth: false, message: 'You\'re not an authorized seller! If you think this is a mistake, talk to our staff!' })
+    }
+
+    if (req.user._id !== (book.seller as User)._id) {
+      if (req.user.details.role < UserRoles.adm) {
+        return res.status(403).send({ auth: false, message: 'You\'re not this book\'s seller! If you think this is a mistake, talk to our staff!' })
+      }
+    }
+
+    res.send({ auth: true, message: 'Book Successfully Deleted' })
+  } catch (error) {
+    logger('error', (error as Error).message)
+    console.error(error)
+    return res.status(500).send({ auth: false, message: 'Internal Server Error' })
+  }
+}) as RequestHandler)
+
 export default router
