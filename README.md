@@ -1,7 +1,7 @@
 # CIC-book-marketplace
 
 Application Test provided by CIC
-Official Release: <https://book-marketplace.kurykat.dev/>
+Official Release: <https://bookmarketplace.kurykat.dev/>
 
 ## How to Start
 
@@ -19,4 +19,4 @@ Official Release: <https://book-marketplace.kurykat.dev/>
 
 ## Documentation
 
-You can read and try out the API on the official [docs](https://book-marketplace.kurykat.dev/docs)!
+You can read and try out the API on the official [docs](https://bookmarketplace.kurykat.dev/docs)!
