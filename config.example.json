@@ -1,6 +1,6 @@
 {
     "project": {
-        "label": "Book Marketplace",
+        "label": "Project Name",
         "env": "development",
         "logPath": "./src/logs/latest.log"
     },
@@ -9,7 +9,7 @@
     },
     "database": {
         "mongo": {
-            "url": "mongodb://localhost/book-marketplace"
+            "url": "MONGO URI"
         }
     },
     "JWT": {
