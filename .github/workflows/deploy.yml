@@ -1,0 +1,55 @@
+name: Deploy
+on: [push]
+
+jobs:
+  Deploy:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node: [16.6.0]
+
+    permissions:
+      id-token: write # Needed for auth with Deno Deploy
+      contents: read # Needed to clone the repository
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+
+      - name: Setup node env 🏗
+        uses: actions/setup-node@v2.5.1
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Get yarn cache directory path 🛠
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - name: Cache node_modules 📦
+        uses: actions/cache@v2.1.7
+        id: yarn-cache
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies 👨🏻‍💻
+        run: yarn
+
+      - name: Create configuration file 🤓
+        run: cp config.example.json config.json
+
+      - name: Run Linter ✏️
+        run: yarn lint
+
+      - name: Run Builder 🥞
+        run: yarn build
+
+      - name: Upload to Deno Deploy
+        uses: denoland/deployctl@v1
+        with:
+          project: "book-marketplace"
+          entrypoint: "./out/src/index.js"
